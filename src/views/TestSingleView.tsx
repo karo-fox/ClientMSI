@@ -1,4 +1,3 @@
-import axios from "axios";
 import { ChangeEvent, useEffect, useState } from "react";
 import {
   Alert,
@@ -17,6 +16,8 @@ import {
   DomainInfo,
   Parameter,
 } from "../models/Algorithm";
+import { getAlgorithms } from "../repositories/algorithmRepository";
+import { getFitnessFunction } from "../repositories/fitnessFunctionRepository";
 
 export default function TestSingleView() {
   const [showParameters, setShowParameters] = useState(false);
@@ -35,20 +36,21 @@ export default function TestSingleView() {
   const [chosenFitnessFunctions, setChosenFitnessFunctions] = useState<
     string[]
   >([]);
-  const [validated, setValidated] = useState(false);
 
   useEffect(() => {
-    axios
-      .get<Algorithm[]>("https://localhost:7083/algorithms")
-      .then((response) => setAlgorithms(response.data))
-      .catch((err) => console.log(err));
+    async function fetchData() {
+      const result = await getAlgorithms();
+      setAlgorithms(result);
+    }
+    fetchData();
   }, []);
 
   useEffect(() => {
-    axios
-      .get<{ name: string }[]>("https://localhost:7083/testfunctions")
-      .then((response) => setFitnessFunctions(response.data))
-      .catch((err) => console.log(err));
+    async function fetchData() {
+      const result = await getFitnessFunction();
+      setFitnessFunctions(result);
+    }
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -127,7 +129,7 @@ export default function TestSingleView() {
     <Container>
       <Stack gap={3}>
         <h1>Test pojedynczego algorytmu</h1>
-        <Form validated={validated} noValidate>
+        <Form>
           <Form.Group>
             <Form.Label>Algorytm</Form.Label>
             <Form.Select
