@@ -1,0 +1,252 @@
+import axios from "axios";
+import { ChangeEvent, useEffect, useState } from "react";
+import {
+  Alert,
+  Button,
+  Col,
+  Container,
+  Form,
+  FormControl,
+  Row,
+  Stack,
+  Table,
+} from "react-bootstrap";
+import {
+  ParameterInfo,
+  Algorithm,
+  DomainInfo,
+  Parameter,
+} from "../models/Algorithm";
+
+export default function TestSingleView() {
+  const [showParameters, setShowParameters] = useState(false);
+  const [algorithms, setAlgorithms] = useState<Algorithm[]>([]);
+  const [algorithm, setAlgorithm] = useState<Algorithm | undefined>(undefined);
+  const [parameterInfos, setParameterInfos] = useState<ParameterInfo[]>([]);
+  const [chosenParameters, setChosenParameters] = useState<Parameter[]>([]);
+  const [dimension, setDimension] = useState<number | undefined>();
+  const [domainInfo, setDomainInfo] = useState<DomainInfo>({
+    dimension: 0,
+    domain: [],
+  });
+  const [fitnessFunctions, setFitnessFunctions] = useState<{ name: string }[]>(
+    []
+  );
+  const [chosenFitnessFunctions, setChosenFitnessFunctions] = useState<
+    string[]
+  >([]);
+  const [validated, setValidated] = useState(false);
+
+  useEffect(() => {
+    axios
+      .get<Algorithm[]>("https://localhost:7083/algorithms")
+      .then((response) => setAlgorithms(response.data))
+      .catch((err) => console.log(err));
+  }, []);
+
+  useEffect(() => {
+    axios
+      .get<{ name: string }[]>("https://localhost:7083/testfunctions")
+      .then((response) => setFitnessFunctions(response.data))
+      .catch((err) => console.log(err));
+  }, []);
+
+  useEffect(() => {
+    if (!algorithm) {
+      setShowParameters(false);
+      setParameterInfos([]);
+      return;
+    }
+    setParameterInfos(algorithm.paramsInfo);
+    setShowParameters(true);
+  }, [algorithm]);
+
+  const handleParameterChange = (value: number, index: number, type: "lower" | "upper" | "step"): void => {
+    if (index > chosenParameters.length) return;
+    const parameters = [...chosenParameters];
+    if (type === "lower") {
+      parameters.at(index)!.lowerBoundary = value;
+    }
+    if (type === "upper") {
+      parameters.at(index)!.upperBoundary = value;
+    }
+    if (type === "step") {
+      parameters.at(index)!.step = value;
+    }
+    setChosenParameters(parameters);
+  }
+
+  const handleDimensionChange = (dimension: number): void => {
+    setDimension(dimension);
+    let domainArray = domainInfo.domain;
+    if (dimension < domainArray.length) {
+      setDomainInfo({ dimension, domain: domainArray.slice(0, dimension) });
+      return;
+    }
+    if (dimension > domainArray.length) {
+      let newDomainArray = [...domainArray];
+      for (let i = domainArray.length; i < dimension; i++) {
+        newDomainArray.push({ lowerBoundary: 0, upperBoundary: 0 });
+      }
+      setDomainInfo({ dimension, domain: newDomainArray });
+      return;
+    }
+    setDomainInfo({ dimension, domain: domainArray });
+  };
+
+  const handleDomainBoundChange = (
+    value: number,
+    index: number,
+    type: "lower" | "upper"
+  ): void => {
+    if (dimension && index >= dimension) return;
+
+    let domainArray = [...domainInfo.domain];
+    if (type === "lower") {
+      if (value > domainArray.at(index)!.upperBoundary) return;
+      domainArray.at(index)!.lowerBoundary = value;
+    }
+    if (type === "upper") {
+      if (value < domainArray.at(index)!.lowerBoundary) return;
+      domainArray.at(index)!.upperBoundary = value;
+    }
+    setDomainInfo({ dimension: dimension || 0, domain: domainArray });
+  };
+
+  const handleFunctionCheckedChange = (
+    event: ChangeEvent<HTMLInputElement>
+  ): void => {
+    const { value, checked } = event.target;
+
+    setChosenFitnessFunctions((prev = []) =>
+      checked ? [...prev, value] : prev.filter((ff) => ff !== value)
+    );
+  };
+
+  return (
+    <Container>
+      <Stack gap={3}>
+        <h1>Test pojedynczego algorytmu</h1>
+        <Form validated={validated} noValidate>
+          <Form.Group>
+            <Form.Label>Algorytm</Form.Label>
+            <Form.Select
+              name="algorithm"
+              value={algorithm?.name}
+              onChange={(e) =>
+                setAlgorithm(
+                  algorithms.find((alg) => alg.name === e.target.value)
+                )
+              }
+            >
+              <option key="defualt-alg" value={undefined} />
+              {algorithms.map((alg) => (
+                <option key={`alg-${algorithms.indexOf(alg)}`} value={alg.name}>
+                  {alg.name}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Parametry</Form.Label>
+            {showParameters ? (
+              <Table>
+                <thead>
+                  <tr>
+                    <th>nazwa</th>
+                    <th>opis</th>
+                    <th>dolna granica</th>
+                    <th>górna granica</th>
+                    <th>ustaw dolną granicę</th>
+                    <th>ustaw górną granicę</th>
+                    <th>ustaw krok</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parameterInfos.map((pi, idx) => (
+                    <tr key={`param-${parameterInfos.indexOf(pi)}`}>
+                      <td>{pi.name}</td>
+                      <td>{pi.description}</td>
+                      <td>{pi.lowerBoundary}</td>
+                      <td>{pi.upperBoundary}</td>
+                      <td>
+                        <FormControl type="number" name={pi.name} onChange={(e) => handleParameterChange(Number(e.target.value), idx, "lower")} />
+                      </td>
+                      <td>
+                        <FormControl type="number" name={pi.name} onChange={(e) => handleParameterChange(Number(e.target.value), idx, "upper")}/>
+                      </td>
+                      <td>
+                        <FormControl type="number" name={pi.name} onChange={(e) => handleParameterChange(Number(e.target.value), idx, "step")}/>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : (
+              <Alert>Najpierw wybierz algorytm!</Alert>
+            )}
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Domena</Form.Label>
+            <Form.Group>
+              <Form.Label>Wymiar</Form.Label>
+              <FormControl
+                type="number"
+                value={dimension}
+                onChange={(e) => handleDimensionChange(Number(e.target.value))}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Wartości</Form.Label>
+              {domainInfo.domain.map((d, idx) => (
+                <Row>
+                  <Form.Group as={Col}>
+                    <Form.Label>Dolna granica</Form.Label>
+                    <FormControl
+                      type="number"
+                      onChange={(e) =>
+                        handleDomainBoundChange(
+                          Number(e.target.value),
+                          idx,
+                          "lower"
+                        )
+                      }
+                    />
+                  </Form.Group>
+                  <Form.Group as={Col}>
+                    <Form.Label>Górna granica</Form.Label>
+                    <FormControl
+                      type="number"
+                      onChange={(e) =>
+                        handleDomainBoundChange(
+                          Number(e.target.value),
+                          idx,
+                          "upper"
+                        )
+                      }
+                    />
+                  </Form.Group>
+                </Row>
+              ))}
+            </Form.Group>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Funkcje testowe</Form.Label>
+            <Stack>
+              {fitnessFunctions.map((ff) => (
+                <Form.Check
+                  key={`ff-${fitnessFunctions.indexOf(ff)}`}
+                  type="checkbox"
+                  label={ff.name}
+                  value={ff.name}
+                  onChange={handleFunctionCheckedChange}
+                />
+              ))}
+            </Stack>
+          </Form.Group>
+        </Form>
+        <Button>Wyślij</Button>
+      </Stack>
+    </Container>
+  );
+}
