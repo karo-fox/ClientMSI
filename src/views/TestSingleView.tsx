@@ -81,15 +81,15 @@ export default function TestSingleView() {
   ): void => {
     if (index > chosenParameters.length) return;
     const parameters = [...chosenParameters];
+    const updatedParameter = { ...parameters[index] };
     if (type === "lower") {
-      parameters.at(index)!.lowerBoundary = value;
+      updatedParameter.lowerBoundary = value;
+    } else if (type === "upper") {
+      updatedParameter.upperBoundary = value;
+    } else if (type === "step") {
+      updatedParameter.step = value;
     }
-    if (type === "upper") {
-      parameters.at(index)!.upperBoundary = value;
-    }
-    if (type === "step") {
-      parameters.at(index)!.step = value;
-    }
+    parameters[index] = updatedParameter;
     setChosenParameters(parameters);
   };
 
@@ -142,9 +142,12 @@ export default function TestSingleView() {
 
   const handleSubmit = () => {
     if (!algorithm) return;
+    const lowerDomainBoundaries = domainInfo.domain.map((d) => d.lowerBoundary);
+    const upperDomainBoundaries = domainInfo.domain.map((d) => d.upperBoundary);
+
     const data: SingleAlgorithmTestRequest = {
       algorithmName: algorithm.name,
-      domain: domainInfo.domain.map((d) => [d.lowerBoundary, d.upperBoundary]),
+      domain: [lowerDomainBoundaries, upperDomainBoundaries],
       parameters: chosenParameters.map((cp) => [
         cp.lowerBoundary,
         cp.upperBoundary,

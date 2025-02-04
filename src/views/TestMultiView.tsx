@@ -120,24 +120,32 @@ export default function TestMultiView() {
   ): void => {
     if (index > parameters.length) return;
     let params = [...parameters];
+    const updatedParam = { ...params[index] };
     if (type === "population") {
-      params.at(index)!.population = value;
+      updatedParam.population = value;
+    } else if (type === "iterations") {
+      updatedParam.iterations = value;
     }
-    if (type === "iterations") {
-      params.at(index)!.iterations = value;
-    }
+    params[index] = updatedParam;
     setParameters(params);
   };
 
   const handleSubmit = (): void => {
     if (!fitnessFunction) return;
+    const lowerDomainBoundaries = domainInfo.domain.map((d) => d.lowerBoundary);
+    const upperDomainBoundaries = domainInfo.domain.map((d) => d.upperBoundary);
+
     const data: MultiAlgorithmTestRequest = {
       testFunctionName: fitnessFunction!,
-      domain: domainInfo.domain.map((d) => [d.lowerBoundary, d.upperBoundary]),
+      domain: [lowerDomainBoundaries, upperDomainBoundaries],
       parameters: parameters.map((p) => [p.population, p.iterations]),
       algorithmNames: chosenAlgorithms.map((ca) => ca.name),
     };
     sendMultiAlgorithmTest(data);
+    setFitnessFunction(undefined);
+    setDomainInfo({ dimension: 0, domain: [] });
+    setParameters([]);
+    setChosenAlgorithms([]);
   };
 
   return (
