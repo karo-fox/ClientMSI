@@ -5,6 +5,7 @@ export default function HomeView() {
   return (
     <Container>
       <Stack gap={3}>
+        <h1>Strona główna</h1>
         <LinkContainer to={"/test-single"}>
           <Button>testuj pojedynczy algorytm</Button>
         </LinkContainer>

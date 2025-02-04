@@ -22,7 +22,7 @@ export default function AppNavbar() {
           </Nav>
           <Nav>
             <LinkContainer to={"/reports"}>
-              <Nav.Link>Wyniki </Nav.Link>
+              <Nav.Link>Wyniki</Nav.Link>
             </LinkContainer>
           </Nav>
         </Navbar.Collapse>

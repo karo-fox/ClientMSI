@@ -1,14 +1,18 @@
 import "./App.css";
-import { Container } from "react-bootstrap";
+import { Container, Stack } from "react-bootstrap";
 import { Outlet } from "react-router-dom";
 import AppNavbar from "./components/AppNavbar";
+import TestController from "./components/TestController";
 
 function App() {
   return (
     <>
-    <AppNavbar />
+      <AppNavbar />
       <Container style={{ paddingBottom: "4rem", paddingTop: "4rem" }}>
-        <Outlet />
+        <Stack gap={3}>
+          <TestController />
+          <Outlet />
+        </Stack>
       </Container>
     </>
   );

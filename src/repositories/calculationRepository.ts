@@ -39,3 +39,13 @@ export const sendMultiAlgorithmTest = (
     .then((response) => console.log(response.data))
     .catch((err) => console.log(err));
 };
+
+export const sendCommand = async (
+  command: "result" | "stop" | "resume"
+): Promise<string> => {
+  const result = await axios
+    .get<string>(`https://${HOSTNAME}/calculationprocessor/${command}`)
+    .then((response) => response.data)
+    .catch((err) => console.log(err));
+  return result || "";
+};
