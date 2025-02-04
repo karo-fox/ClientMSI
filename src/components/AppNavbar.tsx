@@ -25,6 +25,11 @@ export default function AppNavbar() {
               <Nav.Link>Wyniki</Nav.Link>
             </LinkContainer>
           </Nav>
+          <Nav>
+            <LinkContainer to={"/dlls"}>
+              <Nav.Link>Dodawanie DLL</Nav.Link>
+            </LinkContainer>
+          </Nav>
         </Navbar.Collapse>
       </Container>
     </Navbar>

@@ -4,6 +4,7 @@ import HomeView from "./views/HomeView";
 import TestSingleView from "./views/TestSingleView";
 import TestMultiView from "./views/TestMultiView";
 import ReportView from "./views/ReportView";
+import DLLView from "./views/DLLView";
 
 export const routes: RouteObject[] = [
   {
@@ -15,6 +16,7 @@ export const routes: RouteObject[] = [
       { path: "/test-single", element: <TestSingleView /> },
       { path: "/test-multi", element: <TestMultiView /> },
       { path: "/reports", element: <ReportView /> },
+      { path: "/dlls", element: <DLLView /> },
     ],
   },
 ];
