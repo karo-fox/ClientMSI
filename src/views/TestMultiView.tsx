@@ -11,6 +11,10 @@ import {
 } from "react-bootstrap";
 import { getAlgorithms } from "../repositories/algorithmRepository";
 import { getFitnessFunction } from "../repositories/fitnessFunctionRepository";
+import {
+  MultiAlgorithmTestRequest,
+  sendMultiAlgorithmTest,
+} from "../repositories/calculationRepository";
 
 export default function TestMultiView() {
   const [algorithms, setAlgorithms] = useState<Algorithm[]>([]);
@@ -45,6 +49,14 @@ export default function TestMultiView() {
     }
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setParameters(
+      new Array<{ population: number; iterations: number }>(
+        chosenAlgorithms.length
+      ).fill({ population: 0, iterations: 0 })
+    );
+  }, [chosenAlgorithms]);
 
   const handleDimensionChange = (dimension: number): void => {
     setDimension(dimension);
@@ -106,7 +118,7 @@ export default function TestMultiView() {
     index: number,
     type: "population" | "iterations"
   ): void => {
-    if (index > chosenAlgorithms.length) return;
+    if (index > parameters.length) return;
     let params = [...parameters];
     if (type === "population") {
       params.at(index)!.population = value;
@@ -115,6 +127,17 @@ export default function TestMultiView() {
       params.at(index)!.iterations = value;
     }
     setParameters(params);
+  };
+
+  const handleSubmit = (): void => {
+    if (!fitnessFunction) return;
+    const data: MultiAlgorithmTestRequest = {
+      testFunctionName: fitnessFunction!,
+      domain: domainInfo.domain.map((d) => [d.lowerBoundary, d.upperBoundary]),
+      parameters: parameters.map((p) => [p.population, p.iterations]),
+      algorithmNames: chosenAlgorithms.map((ca) => ca.name),
+    };
+    sendMultiAlgorithmTest(data);
   };
 
   return (
@@ -233,7 +256,7 @@ export default function TestMultiView() {
             ))}
           </Form.Group>
         </Form>
-        <Button>Wyślij</Button>
+        <Button onClick={handleSubmit}>Wyślij</Button>
       </Stack>
     </Container>
   );

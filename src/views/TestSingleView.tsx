@@ -18,6 +18,10 @@ import {
 } from "../models/Algorithm";
 import { getAlgorithms } from "../repositories/algorithmRepository";
 import { getFitnessFunction } from "../repositories/fitnessFunctionRepository";
+import {
+  sendSingleAlgorithmTest,
+  SingleAlgorithmTestRequest,
+} from "../repositories/calculationRepository";
 
 export default function TestSingleView() {
   const [showParameters, setShowParameters] = useState(false);
@@ -60,10 +64,21 @@ export default function TestSingleView() {
       return;
     }
     setParameterInfos(algorithm.paramsInfo);
+    setChosenParameters(
+      new Array<Parameter>(algorithm.paramsInfo.length).fill({
+        lowerBoundary: 0,
+        upperBoundary: 0,
+        step: 0,
+      })
+    );
     setShowParameters(true);
   }, [algorithm]);
 
-  const handleParameterChange = (value: number, index: number, type: "lower" | "upper" | "step"): void => {
+  const handleParameterChange = (
+    value: number,
+    index: number,
+    type: "lower" | "upper" | "step"
+  ): void => {
     if (index > chosenParameters.length) return;
     const parameters = [...chosenParameters];
     if (type === "lower") {
@@ -76,7 +91,7 @@ export default function TestSingleView() {
       parameters.at(index)!.step = value;
     }
     setChosenParameters(parameters);
-  }
+  };
 
   const handleDimensionChange = (dimension: number): void => {
     setDimension(dimension);
@@ -123,6 +138,21 @@ export default function TestSingleView() {
     setChosenFitnessFunctions((prev = []) =>
       checked ? [...prev, value] : prev.filter((ff) => ff !== value)
     );
+  };
+
+  const handleSubmit = () => {
+    if (!algorithm) return;
+    const data: SingleAlgorithmTestRequest = {
+      algorithmName: algorithm.name,
+      domain: domainInfo.domain.map((d) => [d.lowerBoundary, d.upperBoundary]),
+      parameters: chosenParameters.map((cp) => [
+        cp.lowerBoundary,
+        cp.upperBoundary,
+        cp.step,
+      ]),
+      testFunctionNames: chosenFitnessFunctions,
+    };
+    sendSingleAlgorithmTest(data);
   };
 
   return (
@@ -172,13 +202,40 @@ export default function TestSingleView() {
                       <td>{pi.lowerBoundary}</td>
                       <td>{pi.upperBoundary}</td>
                       <td>
-                        <FormControl type="number" name={pi.name} onChange={(e) => handleParameterChange(Number(e.target.value), idx, "lower")} />
+                        <FormControl
+                          type="number"
+                          onChange={(e) =>
+                            handleParameterChange(
+                              Number(e.target.value),
+                              idx,
+                              "lower"
+                            )
+                          }
+                        />
                       </td>
                       <td>
-                        <FormControl type="number" name={pi.name} onChange={(e) => handleParameterChange(Number(e.target.value), idx, "upper")}/>
+                        <FormControl
+                          type="number"
+                          onChange={(e) =>
+                            handleParameterChange(
+                              Number(e.target.value),
+                              idx,
+                              "upper"
+                            )
+                          }
+                        />
                       </td>
                       <td>
-                        <FormControl type="number" name={pi.name} onChange={(e) => handleParameterChange(Number(e.target.value), idx, "step")}/>
+                        <FormControl
+                          type="number"
+                          onChange={(e) =>
+                            handleParameterChange(
+                              Number(e.target.value),
+                              idx,
+                              "step"
+                            )
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
@@ -247,7 +304,7 @@ export default function TestSingleView() {
             </Stack>
           </Form.Group>
         </Form>
-        <Button>Wyślij</Button>
+        <Button onClick={handleSubmit}>Wyślij</Button>
       </Stack>
     </Container>
   );
