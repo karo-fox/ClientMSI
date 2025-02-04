@@ -6,16 +6,15 @@ export default function HomeView() {
     <Container>
       <Stack gap={3}>
         <LinkContainer to={"/test-single"}>
-          <Button>
-            testuj pojedynczy algorytm
-          </Button>
+          <Button>testuj pojedynczy algorytm</Button>
         </LinkContainer>
         <LinkContainer to={"/test-multi"}>
-          <Button>
-            testuj wiele algorytmów
-          </Button>
+          <Button>testuj wiele algorytmów</Button>
+        </LinkContainer>
+        <LinkContainer to={"/reports"}>
+          <Button>zobacz wyniki</Button>
         </LinkContainer>
       </Stack>
     </Container>
-  )
+  );
 }
