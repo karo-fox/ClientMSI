@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { Algorithm, DomainInfo } from "../models/Algorithm";
 import {
   Button,
@@ -34,6 +34,20 @@ export default function TestMultiView() {
     { population: number; iterations: number }[]
   >([]);
 
+  const [fitnessFunctionError, setFitnessFunctionError] = useState<
+    string | null
+  >(null);
+  const [dimensionError, setDimensionError] = useState<string | null>(null);
+  const [domainErrors, setDomainErrors] = useState<
+    { lower: string | null; upper: string | null }[]
+  >([]);
+  const [algorithmError, setAlgorithmError] = useState<string | null>(null);
+  const [parameterErrors, setParameterErrors] = useState<
+    { population: string | null; iterations: string | null }[]
+  >([]);
+
+  const [isFormValid, setIsFormValid] = useState<boolean>(false);
+
   useEffect(() => {
     async function fetchData() {
       const result = await getAlgorithms();
@@ -56,9 +70,88 @@ export default function TestMultiView() {
         chosenAlgorithms.length
       ).fill({ population: 0, iterations: 0 })
     );
+    setParameterErrors(
+      new Array(chosenAlgorithms.length).fill({
+        population: null,
+        iterations: null,
+      })
+    );
   }, [chosenAlgorithms]);
 
+  const validateForm = useCallback((): boolean => {
+    let isValid = true;
+
+    if (!fitnessFunction) {
+      setFitnessFunctionError("Wybierz funkcję testową.");
+      isValid = false;
+    } else {
+      setFitnessFunctionError(null);
+    }
+
+    if (!dimension || dimension <= 0) {
+      setDimensionError("Wymiar musi być większy od 0.");
+      isValid = false;
+    } else {
+      setDimensionError(null);
+    }
+
+    domainErrors.forEach((error) => {
+      if (error.lower || error.upper) {
+        isValid = false;
+      }
+    });
+
+    if (chosenAlgorithms.length === 0) {
+      setAlgorithmError("Wybierz co najmniej jeden algorytm.");
+      isValid = false;
+    } else {
+      setAlgorithmError(null);
+    }
+
+    parameterErrors.forEach((error) => {
+      if (error.population || error.iterations) {
+        isValid = false;
+      }
+    });
+
+    if (parameters.filter((p) => p.iterations === 0 && p.population === 0).length > 0) {
+      isValid = false;
+    };
+
+    if (domainInfo.domain.filter((p) => p.lowerBoundary === 0 && p.upperBoundary === 0).length > 0) {
+      isValid = false;
+    };
+
+    return isValid;
+  }, [
+    chosenAlgorithms.length,
+    dimension,
+    domainErrors,
+    parameterErrors,
+    fitnessFunction,
+    parameters,
+    domainInfo.domain,
+  ]);
+
+  useEffect(() => {
+    setIsFormValid(validateForm());
+  }, [
+    fitnessFunction,
+    dimension,
+    domainInfo,
+    chosenAlgorithms,
+    parameters,
+    domainErrors,
+    parameterErrors,
+    validateForm,
+  ]);
+
   const handleDimensionChange = (dimension: number): void => {
+    if (dimension <= 0) {
+      setDimensionError("Wymiar musi być większy od 0.");
+    } else {
+      setDimensionError(null);
+    }
     setDimension(dimension);
     let domainArray = domainInfo.domain;
     if (dimension < domainArray.length) {
@@ -85,11 +178,41 @@ export default function TestMultiView() {
 
     let domainArray = [...domainInfo.domain];
     if (type === "lower") {
-      if (value > domainArray.at(index)!.upperBoundary) return;
+      if (value > domainArray.at(index)!.upperBoundary) {
+        setDomainErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = {
+            ...newErrors[index],
+            lower: "Dolna granica nie może być większa od górnej granicy.",
+          };
+          return newErrors;
+        });
+      } else {
+        setDomainErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = { ...newErrors[index], lower: null };
+          return newErrors;
+        });
+      }
       domainArray.at(index)!.lowerBoundary = value;
     }
     if (type === "upper") {
-      if (value < domainArray.at(index)!.lowerBoundary) return;
+      if (value < domainArray.at(index)!.lowerBoundary) {
+        setDomainErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = {
+            ...newErrors[index],
+            upper: "Górna granica nie może być mniejsza od dolnej granicy.",
+          };
+          return newErrors;
+        });
+      } else {
+        setDomainErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = { ...newErrors[index], upper: null };
+          return newErrors;
+        });
+      }
       domainArray.at(index)!.upperBoundary = value;
     }
     setDomainInfo({ dimension: dimension || 0, domain: domainArray });
@@ -111,6 +234,10 @@ export default function TestMultiView() {
         return prev.filter((alg) => alg.name !== value);
       }
     });
+
+    if (checked && chosenAlgorithms.length === 0) {
+      setAlgorithmError(null);
+    }
   };
 
   const handleParametersChange = (
@@ -121,16 +248,52 @@ export default function TestMultiView() {
     if (index > parameters.length) return;
     let params = [...parameters];
     const updatedParam = { ...params[index] };
+
     if (type === "population") {
+      if (value <= 0) {
+        setParameterErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = {
+            ...newErrors[index],
+            population: "Populacja musi być większa od 0.",
+          };
+          return newErrors;
+        });
+      } else {
+        setParameterErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = { ...newErrors[index], population: null };
+          return newErrors;
+        });
+      }
       updatedParam.population = value;
     } else if (type === "iterations") {
+      if (value <= 0) {
+        setParameterErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = {
+            ...newErrors[index],
+            iterations: "Iteracje muszą być większe od 0.",
+          };
+          return newErrors;
+        });
+      } else {
+        setParameterErrors((prev) => {
+          const newErrors = [...prev];
+          newErrors[index] = { ...newErrors[index], iterations: null };
+          return newErrors;
+        });
+      }
       updatedParam.iterations = value;
     }
+
     params[index] = updatedParam;
     setParameters(params);
   };
 
   const handleSubmit = (): void => {
+    if (!isFormValid) return;
+
     if (!fitnessFunction) return;
     const lowerDomainBoundaries = domainInfo.domain.map((d) => d.lowerBoundary);
     const upperDomainBoundaries = domainInfo.domain.map((d) => d.upperBoundary);
@@ -158,7 +321,11 @@ export default function TestMultiView() {
             <Form.Select
               name="fitness-func"
               value={fitnessFunction}
-              onChange={(e) => setFitnessFunction(e.target.value)}
+              onChange={(e) => {
+                setFitnessFunction(e.target.value);
+                setFitnessFunctionError(null);
+              }}
+              isInvalid={!!fitnessFunctionError}
             >
               <option key="defualt-fitness-func" value={undefined} />
               {fitnessFunctions.map((ff) => (
@@ -170,6 +337,9 @@ export default function TestMultiView() {
                 </option>
               ))}
             </Form.Select>
+            <Form.Control.Feedback type="invalid">
+              {fitnessFunctionError}
+            </Form.Control.Feedback>
           </Form.Group>
           <Form.Group>
             <Form.Label>Domena</Form.Label>
@@ -179,12 +349,16 @@ export default function TestMultiView() {
                 type="number"
                 value={dimension}
                 onChange={(e) => handleDimensionChange(Number(e.target.value))}
+                isInvalid={!!dimensionError}
               />
+              <Form.Control.Feedback type="invalid">
+                {dimensionError}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group>
               <Form.Label>Wartości</Form.Label>
               {domainInfo.domain.map((d, idx) => (
-                <Row>
+                <Row key={`domain-${idx}`}>
                   <Form.Group as={Col}>
                     <Form.Label>Dolna granica</Form.Label>
                     <FormControl
@@ -196,7 +370,11 @@ export default function TestMultiView() {
                           "lower"
                         )
                       }
+                      isInvalid={!!domainErrors[idx]?.lower}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {domainErrors[idx]?.lower}
+                    </Form.Control.Feedback>
                   </Form.Group>
                   <Form.Group as={Col}>
                     <Form.Label>Górna granica</Form.Label>
@@ -209,7 +387,11 @@ export default function TestMultiView() {
                           "upper"
                         )
                       }
+                      isInvalid={!!domainErrors[idx]?.upper}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {domainErrors[idx]?.upper}
+                    </Form.Control.Feedback>
                   </Form.Group>
                 </Row>
               ))}
@@ -225,14 +407,18 @@ export default function TestMultiView() {
                   label={alg.name}
                   value={alg.name}
                   onChange={handleAlgorithmCheckedChange}
+                  isInvalid={!!algorithmError}
                 />
               ))}
             </Stack>
+            <Form.Control.Feedback type="invalid">
+              {algorithmError}
+            </Form.Control.Feedback>
           </Form.Group>
           <Form.Group>
             <Form.Label>Parametry</Form.Label>
             {chosenAlgorithms.map((ca, idx) => (
-              <Row>
+              <Row key={`param-${idx}`}>
                 <Form.Label>{ca.name}</Form.Label>
                 <Form.Group as={Col}>
                   <Form.Label>Populacja</Form.Label>
@@ -245,7 +431,11 @@ export default function TestMultiView() {
                         "population"
                       )
                     }
+                    isInvalid={!!parameterErrors[idx]?.population}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {parameterErrors[idx]?.population}
+                  </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group as={Col}>
                   <Form.Label>Iteracje</Form.Label>
@@ -258,13 +448,19 @@ export default function TestMultiView() {
                         "iterations"
                       )
                     }
+                    isInvalid={!!parameterErrors[idx]?.iterations}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {parameterErrors[idx]?.iterations}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Row>
             ))}
           </Form.Group>
         </Form>
-        <Button onClick={handleSubmit}>Wyślij</Button>
+        <Button onClick={handleSubmit} disabled={!isFormValid}>
+          Wyślij
+        </Button>
       </Stack>
     </Container>
   );

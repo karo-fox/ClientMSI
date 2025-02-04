@@ -15,6 +15,9 @@ export default function HomeView() {
         <LinkContainer to={"/reports"}>
           <Button>zobacz wyniki</Button>
         </LinkContainer>
+        <LinkContainer to={"/dlls"}>
+          <Button>dodaj DLL</Button>
+        </LinkContainer>
       </Stack>
     </Container>
   );
